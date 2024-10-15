@@ -67,6 +67,9 @@ def update_visualizations(face_value, ytm_range, years_range, coupon_rate_range)
     # Display the 3D plot in Streamlit
     st.pyplot(fig)
 
+    st.markdown("---")
+    st.markdown("Prepared and Maintained by Dr. Joshi")
+
     # Line Plot Section: Impact of YTM, Coupon Rate, and Years on Price
     st.write("### Line Plots for Detailed Impact")
     fig, ax = plt.subplots(1, 3, figsize=(18, 6))
