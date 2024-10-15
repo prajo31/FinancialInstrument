@@ -36,6 +36,10 @@ def update_visualizations(face_value, ytm_range, years_range, coupon_rate_range)
                 price = calculate_price(face_value, r, y, cr)
                 data.append([r * 100, y, cr * 100, price])  # YTM and coupon rate in percentage for display
 
+    # Footer
+    st.markdown("---")
+    st.markdown("Prepared and Maintained by Dr. Joshi")
+
     # Display DataFrame
     df = pd.DataFrame(data, columns=["YTM (%)", "Years to Maturity", "Coupon Rate (%)", "Bond Price"]).sort_values(by="Coupon Rate (%)", ascending=False)
     st.write("### Impact of Market Rate, Coupon Rate, and Maturity on Bond Price")
@@ -103,7 +107,6 @@ def update_visualizations(face_value, ytm_range, years_range, coupon_rate_range)
 
     # Display the line plots in Streamlit
     st.pyplot(fig)
-
 
 # Streamlit Sidebar for User Inputs
 st.sidebar.title("Bond Parameters")
