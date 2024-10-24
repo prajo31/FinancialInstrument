@@ -112,8 +112,9 @@ if submit:
         st.warning("You have already submitted a prediction!")
     else:
         error = abs(prediction - current_price)
-        new_entry = pd.DataFrame([[name, prediction, current_price, error]],
-                                 columns=['Name', 'Prediction', 'Market Price', 'Error'])
+        status = "Undervalued" if prediction > current_price else "Overvalued"
+        new_entry = pd.DataFrame([[name, prediction, current_price, error, status]],
+                                 columns=['Name', 'Prediction', 'Market Price', 'Error', 'Status'])
         st.session_state['leaderboard'] = pd.concat([st.session_state['leaderboard'], new_entry], ignore_index=True)
         st.success("Prediction submitted successfully!")
 
