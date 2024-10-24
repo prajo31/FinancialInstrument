@@ -1,5 +1,5 @@
-# --- Created and Maintained by Dr. Joshi ---
-# --- All Rights Reserved ---
+st.write("--- Created and Maintained by Dr. Joshi ---")
+st.write("--- All Rights Reserved ---")
 
 import streamlit as st
 import yfinance as yf
