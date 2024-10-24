@@ -92,6 +92,7 @@ fig.update_layout(title='Forecasted Free Cash Flow Over Time',
 st.plotly_chart(fig)
 
 # --- Leaderboard: Store and Display Student Predictions ---
+# --- Leaderboard: Store and Display Student Predictions ---
 st.subheader("Leaderboard: Student Predictions")
 
 # Initialize or Load Leaderboard
@@ -111,16 +112,18 @@ with st.form("prediction_form"):
 
 # Store Prediction in Leaderboard
 if submit:
-    if name in st.session_state['leaderboard']['Name'].str.lower().values:
-        st.warning("You have already submitted a prediction!")
-    else:
-        error = abs(prediction - current_price)
-        status = "Undervalued" if prediction > current_price else "Overvalued"
-        new_entry = pd.DataFrame([[name, prediction, current_price, error, status]],
-                                 columns=['Name', 'Prediction', 'Market Price', 'Error', 'Status'])
-        st.session_state['leaderboard'] = pd.concat([st.session_state['leaderboard'], new_entry], ignore_index=True)
-        st.success("Prediction submitted successfully!")
+    error = abs(prediction - current_price)
+    new_entry = pd.DataFrame([[name, prediction, current_price, error]],
+                             columns=['Name', 'Prediction', 'Market Price', 'Error'])
 
-# Display Leaderboard
-leaderboard = st.session_state['leaderboard'].sort_values(by='Error', ascending=True)
-st.write(leaderboard)
+    # Append new entry to the leaderboard
+    st.session_state['leaderboard'] = pd.concat([st.session_state['leaderboard'], new_entry], ignore_index=True)
+
+    st.success("Prediction submitted successfully!")
+
+# Display the best prediction (smallest error) per student
+best_entries = st.session_state['leaderboard'].groupby('Name').apply(lambda x: x.nsmallest(1, 'Error')).reset_index(drop=True)
+sorted_leaderboard = best_entries.sort_values(by='Error', ascending=True)
+
+st.write("### Leaderboard (Best Predictions Only)")
+st.dataframe(sorted_leaderboard)
