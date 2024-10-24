@@ -38,7 +38,7 @@ while True:
             f"Could not find data for symbol '{ticker}'. Please check your input or visit finance.yahoo.com.")  # Warn if there is an error
 
 fcf = calculate_fcf(financials, cashflow)
-st.write(f"Current Free Cash Flow: ${fcf:,.2f}")
+st.write(f"Current Free Cash Flow ( in Billion): ${fcf:,.2f}")
 
 # --- Growth Rate and Discount Rate Inputs without Limits ---
 growth_rate = st.number_input("Enter growth rate of FCF (%):", value=3.0) / 100
