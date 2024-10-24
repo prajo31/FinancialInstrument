@@ -1,11 +1,13 @@
-# --- Created and Maintained by Dr. Joshi ---
-# --- All Rights Reserved ---
 
 import streamlit as st
 import yfinance as yf
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+
+# Header Information
+st.markdown("### --- Created and Maintained by Dr. Joshi ---")
+st.markdown("### --- All Rights Reserved ---")
 
 # --- Function to fetch live stock data ---
 @st.cache_data
