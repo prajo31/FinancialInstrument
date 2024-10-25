@@ -31,19 +31,18 @@ st.title("Free Cash Flow Estimation with Intrinsic Value")
 
 # --- User Inputs ---
 while True:
-    ticker = st.text_input("Enter stock ticker (visit finance.yahoo.com to find Ticker Symbol:", "AAPL")
+    ticker = st.text_input("Enter stock ticker (visit finance.yahoo.com to find Ticker Symbol):", "AAPL")
     try:
         if ticker:
             financials, cashflow, current_price = get_stock_data(ticker)
             break
     except Exception as e:
-        st.warning(
-            f"Could not find data for symbol '{ticker}'. Please check your input or visit finance.yahoo.com.")  # Warn if there is an error
+        st.warning(f"Could not find data for symbol '{ticker}'. Please check your input or visit finance.yahoo.com.")
 
 fcf = calculate_fcf(financials, cashflow)
-st.write(f"Current Free Cash Flow ( in Billion): ${fcf:,.2f}")
+st.write(f"Current Free Cash Flow (in Billion): ${fcf:,.2f}")
 
-# --- Growth Rate and Discount Rate Inputs without Limits ---
+# --- Growth Rate and Discount Rate Inputs ---
 growth_rate = st.number_input("Enter growth rate of FCF (%):", value=3.0) / 100
 discount_rate = st.number_input("Enter discount rate (WACC) (%):", value=8.0) / 100
 years = st.slider("Forecast period (years)", 1, 10, 5)
@@ -96,12 +95,7 @@ st.subheader("Leaderboard: Student Predictions")
 
 # Initialize or Load Leaderboard
 if 'leaderboard' not in st.session_state:
-    st.session_state['leaderboard'] = pd.DataFrame(columns=['Name', 'Prediction', 'Market Price', 'Error'])
-
-# Refresh Leaderboard Button
-if st.button("Refresh Leaderboard"):
-    st.session_state['leaderboard'] = pd.DataFrame(columns=['Name', 'Prediction', 'Market Price', 'Error'])
-    st.success("Leaderboard has been refreshed!")
+    st.session_state['leaderboard'] = pd.DataFrame(columns=['Name', 'Prediction', 'Market Price', 'Error', 'Status'])
 
 # Input for Student Prediction
 with st.form("prediction_form"):
@@ -109,18 +103,24 @@ with st.form("prediction_form"):
     prediction = st.number_input("Your predicted intrinsic value:", value=float(intrinsic_value))
     submit = st.form_submit_button("Submit Prediction")
 
-# Store Prediction in Leaderboard
+# Store Prediction in Leaderboard with One-Entry Restriction
 if submit:
     if name in st.session_state['leaderboard']['Name'].str.lower().values:
         st.warning("You have already submitted a prediction!")
     else:
         error = abs(prediction - current_price)
         status = "Undervalued" if prediction > current_price else "Overvalued"
-        new_entry = pd.DataFrame([[name, prediction, current_price, error, status]],
-                                 columns=['Name', 'Prediction', 'Market Price', 'Error', 'Status'])
+
+        # Add the new entry to the leaderboard
+        new_entry = pd.DataFrame(
+            [[name, prediction, current_price, error, status]],
+            columns=['Name', 'Prediction', 'Market Price', 'Error', 'Status']
+        )
+
+        # Append the new entry to the leaderboard
         st.session_state['leaderboard'] = pd.concat([st.session_state['leaderboard'], new_entry], ignore_index=True)
         st.success("Prediction submitted successfully!")
 
-# Display Leaderboard
+# Display the leaderboard, sorted by error
 leaderboard = st.session_state['leaderboard'].sort_values(by='Error', ascending=True)
 st.write(leaderboard)
