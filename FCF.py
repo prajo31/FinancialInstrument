@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 import os
 
 # --- File to store leaderboard ---
-LEADERBOARD_FILE = "leaderboard4.csv"
+LEADERBOARD_FILE = "leaderboard5.csv"
 
 # --- Function to fetch live stock data ---
 @st.cache_data
@@ -106,12 +106,14 @@ st.plotly_chart(fig)
 # --- Leaderboard: Store and Display Student Predictions ---
 st.subheader("Leaderboard: Student Predictions")
 
-# Load Leaderboard
-leaderboard = load_leaderboard()
+# Initialize or Load Leaderboard
+if 'leaderboard' not in st.session_state:
+    st.session_state['leaderboard'] = load_leaderboard()
 
 # Refresh Leaderboard Button
 if st.button("Refresh Leaderboard"):
-    leaderboard = load_leaderboard()
+    st.session_state['leaderboard'] = pd.DataFrame(columns=['Name', 'Prediction', 'Market Price', 'Error', 'Status'])
+    save_leaderboard(st.session_state['leaderboard'])  # Save empty leaderboard to CSV
     st.success("Leaderboard has been refreshed!")
 
 # Input for Student Prediction
@@ -122,19 +124,19 @@ with st.form("prediction_form"):
 
 # Store Prediction in Leaderboard
 if submit:
-    if name in leaderboard['Name'].str.lower().values:
+    if name in st.session_state['leaderboard']['Name'].str.lower().values:
         st.warning("You have already submitted a prediction!")
     else:
         error = abs(prediction - current_price)
         status = "Undervalued" if prediction > current_price else "Overvalued"
         new_entry = pd.DataFrame([[name, prediction, current_price, error, status]],
                                  columns=['Name', 'Prediction', 'Market Price', 'Error', 'Status'])
-        leaderboard = pd.concat([leaderboard, new_entry], ignore_index=True)
-        save_leaderboard(leaderboard)  # Save updated leaderboard to CSV
+        st.session_state['leaderboard'] = pd.concat([st.session_state['leaderboard'], new_entry], ignore_index=True)
+        save_leaderboard(st.session_state['leaderboard'])  # Save updated leaderboard to CSV
         st.success("Prediction submitted successfully!")
 
 # Display Leaderboard
-leaderboard = leaderboard.sort_values(by='Error', ascending=True)
+leaderboard = st.session_state['leaderboard'].sort_values(by='Error', ascending=True)
 st.write(leaderboard)
 
 # --- Download Option ---
