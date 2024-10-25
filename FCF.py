@@ -111,20 +111,22 @@ with st.form("prediction_form"):
 
 # Store Prediction in Leaderboard
 if submit:
-    leaderboard = st.session_state['leaderboard']
-    if name in leaderboard['Name'].str.lower().values:
+    # Check for existing entry
+    if name in st.session_state['leaderboard']['Name'].str.lower().values:
         st.warning("You have already submitted a prediction!")
     else:
         error = abs(prediction - current_price)
         status = "Undervalued" if prediction > current_price else "Overvalued"
         new_entry = pd.DataFrame([[name, prediction, current_price, error, status]],
                                  columns=['Name', 'Prediction', 'Market Price', 'Error', 'Status'])
-        st.session_state['leaderboard'] = pd.concat([leaderboard, new_entry], ignore_index=True)
+
+        # Append new entry to the leaderboard
+        st.session_state['leaderboard'] = pd.concat([st.session_state['leaderboard'], new_entry], ignore_index=True)
         st.success("Prediction submitted successfully!")
 
-# Display Leaderboard only after submission
-if st.session_state['leaderboard'].shape[0] > 0:
+# Display Leaderboard
+if not st.session_state['leaderboard'].empty:
     leaderboard = st.session_state['leaderboard'].sort_values(by='Error', ascending=True)
     st.write(leaderboard)
 else:
-    st.info("Submit your prediction to see the leaderboard.")
+    st.write("No predictions submitted yet.")
