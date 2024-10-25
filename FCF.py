@@ -38,7 +38,7 @@ def save_leaderboard(leaderboard):
 def load_leaderboard():
     if os.path.exists(LEADERBOARD_FILE):
         return pd.read_csv(LEADERBOARD_FILE)
-    return pd.DataFrame(columns=['Name', 'Prediction', 'Market Price', 'Error', 'Status'])
+    return pd.DataFrame(columns=['Name', 'Company', 'Prediction', 'Market Price', 'Error', 'Status'])
 
 # --- Main Application Interface ---
 st.title("Free Cash Flow Estimation with Intrinsic Value")
@@ -112,13 +112,14 @@ if 'leaderboard' not in st.session_state:
 
 # Refresh Leaderboard Button
 if st.button("Refresh Leaderboard"):
-    st.session_state['leaderboard'] = pd.DataFrame(columns=['Name', 'Prediction', 'Market Price', 'Error', 'Status'])
+    st.session_state['leaderboard'] = pd.DataFrame(columns=['Name', 'Company', 'Prediction', 'Market Price', 'Error', 'Status'])
     save_leaderboard(st.session_state['leaderboard'])  # Save empty leaderboard to CSV
     st.success("Leaderboard has been refreshed!")
 
 # Input for Student Prediction
 with st.form("prediction_form"):
     name = st.text_input("Enter your name:").strip().lower()  # Normalize name to lowercase
+    company_name = st.text_input("Enter the company name:")  # New input for company name
     prediction = st.number_input("Your predicted intrinsic value:", value=float(intrinsic_value))
     submit = st.form_submit_button("Submit Prediction")
 
@@ -129,8 +130,8 @@ if submit:
     else:
         error = abs(prediction - current_price)
         status = "Undervalued" if prediction > current_price else "Overvalued"
-        new_entry = pd.DataFrame([[name, prediction, current_price, error, status]],
-                                 columns=['Name', 'Prediction', 'Market Price', 'Error', 'Status'])
+        new_entry = pd.DataFrame([[name, company_name, prediction, current_price, error, status]],
+                                 columns=['Name', 'Company', 'Prediction', 'Market Price', 'Error', 'Status'])
         st.session_state['leaderboard'] = pd.concat([st.session_state['leaderboard'], new_entry], ignore_index=True)
         save_leaderboard(st.session_state['leaderboard'])  # Save updated leaderboard to CSV
         st.success("Prediction submitted successfully!")
