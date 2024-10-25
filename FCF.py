@@ -8,6 +8,13 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 
+# --- Main Application Interface ---
+st.title("Free Cash Flow Estimation with Intrinsic Value")
+
+# --- Display Author Information ---
+st.text("Prepared and Maintained by Dr. Joshi")
+st.text("All Rights Reserved")
+
 # --- File to store leaderboard ---
 LEADERBOARD_FILE = "leaderboard5.csv"
 
@@ -39,9 +46,6 @@ def load_leaderboard():
     if os.path.exists(LEADERBOARD_FILE):
         return pd.read_csv(LEADERBOARD_FILE)
     return pd.DataFrame(columns=['Name', 'Company', 'Prediction', 'Market Price', 'Error', 'Status'])
-
-# --- Main Application Interface ---
-st.title("Free Cash Flow Estimation with Intrinsic Value")
 
 # --- User Inputs ---
 while True:
