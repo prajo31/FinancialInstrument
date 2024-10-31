@@ -250,6 +250,76 @@ def main():
     - Annuity Payments: **$1000**
     """)
 
+    # Plotting Sensitivity Analysis
+    def plot_sensitivity_analysis(sensitivity_df):
+        plt.figure(figsize=(10, 6))
+
+        # Plot Future Value vs Interest Rate for different periods
+        for year in years:
+            subset = sensitivity_df[sensitivity_df["Number of Years"] == year]
+            plt.plot(subset["Interest Rate (%)"], subset["Future Value"], marker='o', label=f'FV at {year} years')
+
+        plt.title('Sensitivity Analysis of Future Value')
+        plt.xlabel('Interest Rate (%)')
+        plt.ylabel('Future Value')
+        plt.xticks(interest_rates)
+        plt.grid(True)
+        plt.legend()
+        st.pyplot(plt)
+
+        # Clear the figure for the next plot
+        plt.clf()
+
+        # Plot Present Value vs Interest Rate for different periods
+        for year in years:
+            subset = sensitivity_df[sensitivity_df["Number of Years"] == year]
+            plt.plot(subset["Interest Rate (%)"], subset["Present Value"], marker='o', label=f'PV at {year} years')
+
+        plt.title('Sensitivity Analysis of Present Value')
+        plt.xlabel('Interest Rate (%)')
+        plt.ylabel('Present Value')
+        plt.xticks(interest_rates)
+        plt.grid(True)
+        plt.legend()
+        st.pyplot(plt)
+
+        # Clear the figure for the next plot
+        plt.clf()
+
+        # Plot Future Value of Annuity vs Interest Rate for different periods
+        for year in years:
+            subset = sensitivity_df[sensitivity_df["Number of Years"] == year]
+            plt.plot(subset["Interest Rate (%)"], subset["Future Value of Annuity"], marker='o',
+                     label=f'FVA at {year} years')
+
+        plt.title('Sensitivity Analysis of Future Value of Annuity')
+        plt.xlabel('Interest Rate (%)')
+        plt.ylabel('Future Value of Annuity')
+        plt.xticks(interest_rates)
+        plt.grid(True)
+        plt.legend()
+        st.pyplot(plt)
+
+        # Clear the figure for the next plot
+        plt.clf()
+
+        # Plot Present Value of Annuity vs Interest Rate for different periods
+        for year in years:
+            subset = sensitivity_df[sensitivity_df["Number of Years"] == year]
+            plt.plot(subset["Interest Rate (%)"], subset["Present Value of Annuity"], marker='o',
+                     label=f'PVA at {year} years')
+
+        plt.title('Sensitivity Analysis of Present Value of Annuity')
+        plt.xlabel('Interest Rate (%)')
+        plt.ylabel('Present Value of Annuity')
+        plt.xticks(interest_rates)
+        plt.grid(True)
+        plt.legend()
+        st.pyplot(plt)
+
+    # Call the function to plot sensitivity analysis
+    plot_sensitivity_analysis(sensitivity_df)
+
     # Display the sensitivity analysis table
     st.dataframe(sensitivity_df)
 
@@ -262,6 +332,8 @@ def main():
 
         **Annuities:** A series of equal payments made at regular intervals.
     """)
+
+
 
 
 if __name__ == "__main__":
