@@ -61,7 +61,12 @@ else:
 
     betas = []
     expected_returns_capm = []
-    for stock in tickers:
+    actual_returns = []  # To store the actual returns for each stock
+
+    # Define a color map or a list of colors for the tickers
+    colors = plt.cm.get_cmap("tab20", len(tickers))  # Get a color map with a number of distinct colors
+
+    for i, stock in enumerate(tickers):
         X = sm.add_constant(market_returns)
         Y = returns[stock]
         model = sm.OLS(Y, X).fit()
@@ -70,20 +75,29 @@ else:
         betas.append(beta)
         expected_returns_capm.append(expected_return_capm)
 
+        # Calculate the actual return (e.g., annualized return) for each stock
+        actual_return = returns[stock].mean() * 252  # Annualized actual return
+        actual_returns.append(actual_return)
+
     # Plot SML with all tickers' betas
     beta_range = np.linspace(0, 2, 100)
     sml = risk_free_rate + beta_range * market_premium
     plt.figure(figsize=(10, 5))
-    plt.plot(beta_range, sml, label="SML")
+    plt.plot(beta_range, sml, label="SML", color="black")  # Plot the SML in black
 
+    # Plot each ticker's data with unique colors
     for i, stock in enumerate(tickers):
         plt.scatter(betas[i], expected_returns_capm[i],
-                    label=f"{stock} (β={betas[i]:.2f}, E[Return]={expected_returns_capm[i]:.2%})")
+                    label=f"{stock} (β={betas[i]:.2f}, E[Return]={expected_returns_capm[i]:.2%})",
+                    color=colors(i))  # Use color from colormap
+
+        # Plot the actual return on the SML
+        plt.scatter(betas[i], actual_returns[i], color=colors(i), marker='x', s=100, label=f"{stock} Actual Return")
 
     plt.title("Security Market Line (SML) for Selected Assets")
     plt.xlabel("Beta (β)")
-    plt.ylabel("Expected Return")
-    plt.legend()
+    plt.ylabel("Expected Return / Actual Return")
+    plt.legend(loc='upper left')
     st.pyplot(plt)
 
     # --- Portfolio Risk and Return ---
