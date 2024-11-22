@@ -101,8 +101,7 @@ if ticker_input:
         for year, growth in result["Annual Growth Rates"].items():
             st.write(f"{year}: {growth:.2%}")
 
-        st.write(f"\n**Average Annual Growth Rate**: {result['Average Annual Growth Rate']:.2%}")
-        st.write(f"**Annualized Growth Rate**: {result['Annualized Growth Rate']:.2%}")
+        st.write(f"**Annualized Growth Rate (Dividends)**: {result['Annualized Growth Rate']:.2%}")
         st.write(f"**Dividend Yield**: {result['Dividend Yield']:.2%}")
         st.write(f"**Required Return (R)**: {result['Required Return']:.2%}")
 
