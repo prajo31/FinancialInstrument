@@ -20,6 +20,9 @@ def annual_dividend_growth_from_history(ticker, period="5y"):
     stock = yf.Ticker(ticker)
     historical_data = stock.history(period=period, actions=True)
 
+    # Fetch the actual stock price (latest closing price)
+    actual_price = stock.history(period="1d")['Close'].iloc[0]
+
     # Extract dividends
     if 'Dividends' not in historical_data.columns or historical_data['Dividends'].sum() == 0:
         return f"No dividend data available for {ticker} in the given period."
@@ -61,6 +64,9 @@ def annual_dividend_growth_from_history(ticker, period="5y"):
     st.write(f"Annual Growth Rate: {annualized_growth:.2%}")
     st.write(f"Dividend Yield: {dividend_yield:.2%}")
     st.write(f"Required Return (R): {required_return:.2%}")
+    st.write(f"**Actual Stock Price**: ${actual_price:.2f}")  # Display actual stock price
+
+    # Calculate stock price using the Dividend Discount Model (DDM)
 
     # Calculate stock price using the Dividend Discount Model (DDM)
     if required_return > annualized_growth:  # Ensure R > g
@@ -75,7 +81,8 @@ def annual_dividend_growth_from_history(ticker, period="5y"):
         "Annualized Growth Rate": annualized_growth,
         "Dividend Yield": dividend_yield,
         "Required Return": required_return,
-        "Estimated Stock Price": stock_price
+        "Estimated Stock Price": stock_price,
+        "Actual Stock Price": actual_price
     }
 
 
@@ -103,3 +110,6 @@ if ticker_input:
             st.write(f"**Estimated Stock Price**: ${result['Estimated Stock Price']:.2f}")
         else:
             st.warning("Stock price calculation is not possible due to invalid required return (R <= g).")
+
+            # Display the actual stock price
+            st.write(f"**Actual Stock Price**: ${result['Actual Stock Price']:.2f}")
