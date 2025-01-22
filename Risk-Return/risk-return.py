@@ -18,8 +18,10 @@ if len(tickers) < 1:
     st.warning("Please select at least one stock.")
 else:
     # Fetch Data
-    data = yf.download(tickers + [market_index], start="2018-01-01", end="2023-01-01")['Adj Close']
-    returns = data.pct_change().dropna()
+    ddata = yf.download(tickers + [market_index], start=start_date, end=end_date)
+    # Access 'Adj Close' for all tickers and the market index
+    adj_close_data = data.xs('Adj Close', axis=1, level=0)
+    returns = adj_close_data.pct_change().dropna()
 
     st.subheader("Sample Data")
     st.write(data.tail())
