@@ -7,18 +7,30 @@ import statsmodels.api as sm
 
 # --- App Header ---
 st.title("Interactive Finance Simulation: Risk and Return")
+st.markdown("**Right Reserved with Dr. Joshi**")
 st.sidebar.header("Simulation Controls")
+
+# --- Time Duration and Frequency Change ---
+st.sidebar.subheader("Select Time Duration and Frequency")
+start_date = st.sidebar.date_input("Start Date", pd.to_datetime("2018-01-01"))
+end_date = st.sidebar.date_input("End Date", pd.to_datetime("2023-01-01"))
+frequency = st.sidebar.selectbox("Select Data Frequency", ["1d", "1wk", "1mo"])
 
 # --- Data Fetching ---
 st.sidebar.subheader("Select Tickers")
-tickers = st.sidebar.multiselect("Choose Stocks", ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"], default=["AAPL", "MSFT"])
+tickers = st.sidebar.text_input("Enter Stock Tickers (comma-separated)", "AAPL, MSFT, GOOGL, AMZN, TSLA")
+tickers = tickers.split(",")
+
+# Strip spaces from tickers
+tickers = [ticker.strip() for ticker in tickers]
+
 market_index = "^GSPC"  # S&P 500
 
 if len(tickers) < 1:
     st.warning("Please select at least one stock.")
 else:
     # Fetch Data
-    data = yf.download(tickers + [market_index], start="2018-01-01", end="2023-01-01")['Adj Close']
+    data = yf.download(tickers + [market_index], start=start_date, end=end_date, interval=frequency)['Adj Close']
     returns = data.pct_change().dropna()
 
     st.subheader("Sample Data")
@@ -41,41 +53,115 @@ else:
     st.write(f"**Expected Return (Annualized):** {expected_return:.2%}")
     st.write(f"**Standard Deviation (Annualized):** {std_dev:.2%}")
 
-    # --- CAPM and Security Market Line ---
+    # --- CAPM and Security Market Line for all tickers ---
     st.subheader("3. CAPM and Security Market Line")
     market_returns = returns[market_index]
-    X = sm.add_constant(market_returns)
-    Y = returns[stock]
-    model = sm.OLS(Y, X).fit()
-    beta = model.params[1]
-    risk_free_rate = st.sidebar.slider("Risk-Free Rate", 0.01, 0.10, 0.03)
+    risk_free_rate = st.sidebar.slider("Risk-Free Rate", 0.01, 0.10, 0.03, key="risk_free_rate")
     market_premium = st.sidebar.slider("Market Risk Premium", 0.01, 0.10, 0.06)
-    expected_return_capm = risk_free_rate + beta * market_premium
 
-    st.write(f"**Beta (β):** {beta:.2f}")
-    st.write(f"**Expected Return (CAPM):** {expected_return_capm:.2%}")
+    betas = []
+    expected_returns_capm = []
+    actual_returns = []  # To store the actual returns for each stock
 
+    # Define a color map or a list of colors for the tickers
+    colors = plt.cm.get_cmap("tab20", len(tickers))  # Get a color map with a number of distinct colors
+
+    for i, stock in enumerate(tickers):
+        X = sm.add_constant(market_returns)
+        Y = returns[stock]
+        model = sm.OLS(Y, X).fit()
+        beta = model.params[1]
+        expected_return_capm = risk_free_rate + beta * market_premium
+        betas.append(beta)
+        expected_returns_capm.append(expected_return_capm)
+
+        # Calculate the actual return (e.g., annualized return) for each stock
+        actual_return = returns[stock].mean() * 252  # Annualized actual return
+        actual_returns.append(actual_return)
+
+    # Plot SML with all tickers' betas
     beta_range = np.linspace(0, 2, 100)
     sml = risk_free_rate + beta_range * market_premium
     plt.figure(figsize=(10, 5))
-    plt.plot(beta_range, sml, label="SML")
-    plt.scatter(beta, expected_return_capm, color='red', label=stock)
-    plt.title("Security Market Line (SML)")
+    plt.plot(beta_range, sml, label="SML", color="black")  # Plot the SML in black
+
+    # Plot each ticker's data with unique colors
+    for i, stock in enumerate(tickers):
+        plt.scatter(betas[i], expected_returns_capm[i],
+                    label=f"{stock} (β={betas[i]:.2f}, E[Return]={expected_returns_capm[i]:.2%})",
+                    color=colors(i))  # Use color from colormap
+
+        # Plot the actual return on the SML
+        plt.scatter(betas[i], actual_returns[i], color=colors(i), marker='x', s=100, label=f"{stock} Actual Return")
+
+    plt.title("Security Market Line (SML) for Selected Assets")
     plt.xlabel("Beta (β)")
-    plt.ylabel("Expected Return")
-    plt.legend()
+    plt.ylabel("Expected Return / Actual Return")
+    plt.legend(loc='upper left')
     st.pyplot(plt)
 
     # --- Portfolio Risk and Return ---
     st.subheader("4. Portfolio Risk and Return")
-    weights = st.sidebar.slider("Weight for Portfolio", 0.0, 1.0, 0.5)
-    portfolio_returns = returns[tickers].mean() * 252
-    portfolio_cov_matrix = returns[tickers].cov() * 252
-    portfolio_expected_return = np.dot([weights, 1 - weights], portfolio_returns)
-    portfolio_volatility = np.sqrt(np.dot([weights, 1 - weights], np.dot(portfolio_cov_matrix, [weights, 1 - weights])))
 
-    st.write(f"**Portfolio Expected Return:** {portfolio_expected_return:.2%}")
-    st.write(f"**Portfolio Volatility (Risk):** {portfolio_volatility:.2%}")
+    # Risk aversion slider
+    risk_aversion = st.sidebar.slider("Risk Aversion Coefficient (A)", 0.5, 10.0, 3.0)
+
+    # Select the weights for the assets in the portfolio
+    num_assets = len(tickers)
+    weights = []
+    for i in range(num_assets):
+        weight = st.sidebar.slider(f"Weight for {tickers[i]}", -1.0, 1.0, 1.0 / num_assets, step=0.01,
+                                   key=f"weight_{tickers[i]}")
+        weights.append(weight)
+
+    # Normalize the weights so that they sum up to 1 (adjust for short-selling)
+    weights = np.array(weights)
+    if np.sum(weights) != 0:
+        weights /= np.sum(weights)  # Normalize if the sum isn't zero
+
+    # Calculate portfolio returns and covariance matrix
+    portfolio_returns = returns[tickers].mean() * 252  # Annualize returns
+    portfolio_cov_matrix = returns[tickers].cov() * 252  # Annualize covariance matrix
+
+    # Check if the covariance matrix is valid
+    if np.any(np.isnan(portfolio_cov_matrix)) or np.any(np.isinf(portfolio_cov_matrix)):
+        st.warning("Covariance matrix contains invalid values.")
+    else:
+        # Portfolio Expected Return
+        portfolio_expected_return = np.dot(weights, portfolio_returns)
+
+        # Portfolio Volatility (Risk)
+        try:
+            portfolio_volatility = np.sqrt(np.dot(weights, np.dot(portfolio_cov_matrix, weights)))
+        except ValueError:
+            portfolio_volatility = np.nan  # If there's a matrix issue, set volatility to NaN
+
+        # Calculate Portfolio Beta
+        weighted_betas = np.dot(weights, betas)
+
+        st.write(f"**Portfolio Expected Return:** {portfolio_expected_return:.2%}")
+        st.write(f"**Portfolio Volatility (Risk):** {portfolio_volatility:.2%}")
+        st.write(f"**Portfolio Beta:** {weighted_betas:.2f}")
+
+    # --- Minimum and Maximum Portfolio Risk ---
+    portfolio_risks = []
+
+    for i in range(100):  # Simulating 100 random weight combinations
+        random_weights = np.random.random(num_assets)
+        random_weights /= random_weights.sum()
+
+        portfolio_volatility = np.sqrt(np.dot(random_weights, np.dot(portfolio_cov_matrix, random_weights)))
+        if not np.isnan(portfolio_volatility):
+            portfolio_risks.append(portfolio_volatility)
+
+    if portfolio_risks:
+        min_risk = min(portfolio_risks)
+        max_risk = max(portfolio_risks)
+        st.write(f"**Minimum Portfolio Risk:** {min_risk:.2%}")
+        st.write(f"**Maximum Portfolio Risk:** {max_risk:.2%}")
+    else:
+        st.write("**Minimum Portfolio Risk:** Invalid data")
+        st.write("**Maximum Portfolio Risk:** Invalid data")
 
     # --- Diversification ---
     st.subheader("5. Diversification: Systematic vs Diversifiable Risk")
@@ -93,23 +179,44 @@ else:
     # --- Risk Aversion and Utility Curves ---
     st.subheader("6. Risk Aversion and Utility Curves")
 
-    # Risk aversion slider
-    risk_aversion = st.sidebar.slider("Risk Aversion Coefficient (A)", 0.5, 10.0, 3.0)
-
     # Calculate utility for the selected stock
-    utility = expected_return - 0.5 * risk_aversion * (std_dev ** 2)
-    st.write(f"**Utility for Selected Stock (U):** {utility:.2f}")
+    utility = portfolio_expected_return - 0.5 * risk_aversion * (portfolio_volatility ** 2)
+    st.write(f"**Utility for Selected Portfolio (U):** {utility:.2f}")
 
     # Plot Utility Curve
-    risk_levels = np.linspace(0.01, std_dev * 2, 100)
-    utility_values = expected_return - 0.5 * risk_aversion * (risk_levels ** 2)
+    risk_levels = np.linspace(0.01, portfolio_volatility * 2, 100)
+    utility_values = portfolio_expected_return - 0.5 * risk_aversion * (risk_levels ** 2)
 
     plt.figure(figsize=(10, 5))
     plt.plot(risk_levels, utility_values, label=f"Utility Curve (A={risk_aversion})")
-    plt.axvline(x=std_dev, color='red', linestyle='--', label="Stock Risk")
-    plt.axhline(y=utility, color='blue', linestyle='--', label="Stock Utility")
+    plt.axvline(x=portfolio_volatility, color='red', linestyle='--', label="Portfolio Risk")
+    plt.axhline(y=utility, color='blue', linestyle='--', label="Portfolio Utility")
     plt.title("Utility Curve")
     plt.xlabel("Risk (Standard Deviation)")
     plt.ylabel("Utility")
     plt.legend()
+    st.pyplot(plt)
+
+    # --- Correlation of Assets ---
+    st.subheader("7. Correlation of Assets and Portfolio Risk")
+    correlation_matrix = returns[tickers].corr()
+    st.write("**Correlation Matrix**")
+    st.write(correlation_matrix)
+
+    # Impact of Correlation on Portfolio Risk
+    st.subheader("Impact of Correlation on Portfolio Risk")
+
+    correlations = np.linspace(-1, 1, 21)
+    portfolio_volatilities = []
+
+    for corr in correlations:
+        modified_cov_matrix = correlation_matrix * corr
+        portfolio_volatility = np.sqrt(np.dot(weights, np.dot(modified_cov_matrix, weights)))
+        portfolio_volatilities.append(portfolio_volatility)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(correlations, portfolio_volatilities, label="Portfolio Volatility")
+    plt.title("Portfolio Volatility vs. Asset Correlation")
+    plt.xlabel("Correlation Coefficient")
+    plt.ylabel("Portfolio Volatility")
     st.pyplot(plt)
