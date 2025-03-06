@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.preprocessing import StandardScaler
 import shap
 
-# Define credit score factors (same as before)
+# Define credit score factors
 factors = {
     'Payment History': {'impact': 1, 'weight': 0.15},
     'Credit Mix': {'impact': 1, 'weight': 0.10},
@@ -50,8 +50,8 @@ st.subheader("FICO-Like Credit Score")
 st.write(f"Your credit score is: **{fico_score}**")
 
 # Simulated dataset for Default Risk Prediction
-np.random.seed(42)
-X_train = np.random.randint(0, 11, (500, len(factors)))
+rng = np.random.default_rng(42)  # Fix NumPy warning
+X_train = rng.integers(0, 11, (500, len(factors)))
 y_train = np.random.choice([0, 1], size=500, p=[0.8, 0.2])  # 80% non-default, 20% default
 
 # Train a simple Random Forest model
@@ -59,7 +59,7 @@ rf_model = RandomForestClassifier()
 rf_model.fit(X_train, y_train)
 
 # Convert user input into a model-friendly format
-user_input = np.array([list(factor_values.values())]).reshape(1, -1)
+user_input = np.array(list(factor_values.values())).reshape(1, -1)  # Ensure 2D input
 
 # Predict default risk
 default_risk = predict_default_risk(user_input, rf_model)
@@ -87,8 +87,31 @@ st.write(f"**Fraud Risk Assessment:** {fraud_risk}")
 # SHAP Explainability
 st.subheader("AI Explainability - SHAP Values")
 explainer = shap.TreeExplainer(rf_model)
-shap_values = explainer.shap_values(user_input)
 
-fig, ax = plt.subplots()
-shap.summary_plot(shap_values, feature_names=factors.keys(), show=False)
-st.pyplot(fig)
+# Ensure SHAP values are computed safely
+try:
+    shap_values = explainer.shap_values(user_input)
+    
+    # Debug output
+    st.write(f"SHAP values type: {type(shap_values)}")
+    if isinstance(shap_values, list) and len(shap_values) > 0:
+        shap_values = np.array(shap_values)
+        if shap_values.ndim == 3:  
+            shap_values = shap_values[1]  # Select correct class if multi-class
+        elif shap_values.ndim == 1:
+            shap_values = shap_values.reshape(1, -1)  # Ensure 2D shape
+    else:
+        st.error("SHAP values computation failed.")
+        shap_values = np.zeros((1, len(factors)))  # Default to zeros
+
+    # Ensure correct shape for plotting
+    feature_names = list(factors.keys())  # Ensure feature names is a list
+    if shap_values.shape[1] == len(feature_names):
+        fig, ax = plt.subplots()
+        shap.summary_plot(shap_values, feature_names=feature_names, show=False)
+        st.pyplot(fig)
+    else:
+        st.error(f"SHAP values shape mismatch: SHAP values {shap_values.shape}, features {len(feature_names)}")
+
+except Exception as e:
+    st.error(f"SHAP computation error: {e}")
