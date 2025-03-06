@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import streamlit.components.v1 as components
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.preprocessing import StandardScaler
 import shap
@@ -35,6 +36,12 @@ def predict_default_risk(input_data, model):
     prediction = model.predict_proba(input_data)[0, 1]  # Get probability of default
     return round(prediction * 100, 2)  # Convert to percentage risk
 
+# Helper function for rendering SHAP plots
+def st_shap(plot, height=None):
+    """Helper function to display SHAP plots in Streamlit"""
+    shap_html = f"<head>{shap.getjs()}</head><body>{plot.html()}</body>"
+    components.html(shap_html, height=height)
+
 # Streamlit UI
 st.title('AI-Powered Credit Report Analysis')
 
@@ -59,7 +66,7 @@ rf_model = RandomForestClassifier()
 rf_model.fit(X_train, y_train)
 
 # Convert user input into a model-friendly format
-user_input = np.array(list(factor_values.values())).reshape(1, -1)  # Ensure 2D input
+user_input = np.array(list(factor_values.values()), dtype=float).reshape(1, -1)  # Ensure 2D input
 
 # Predict default risk
 default_risk = predict_default_risk(user_input, rf_model)
@@ -88,15 +95,16 @@ st.write(f"**Fraud Risk Assessment:** {fraud_risk}")
 st.subheader("AI Explainability - SHAP Values")
 explainer = shap.TreeExplainer(rf_model)
 
-# Ensure SHAP values are computed safely
+# Ensure SHAP values computation is valid
 try:
     shap_values = explainer.shap_values(user_input)
-    
+
     # Debug output
     st.write(f"SHAP values type: {type(shap_values)}")
+    
     if isinstance(shap_values, list) and len(shap_values) > 0:
         shap_values = np.array(shap_values)
-        if shap_values.ndim == 3:  
+        if shap_values.ndim == 3:
             shap_values = shap_values[1]  # Select correct class if multi-class
         elif shap_values.ndim == 1:
             shap_values = shap_values.reshape(1, -1)  # Ensure 2D shape
@@ -105,8 +113,14 @@ try:
         shap_values = np.zeros((1, len(factors)))  # Default to zeros
 
     # Ensure correct shape for plotting
-    feature_names = list(factors.keys())  # Ensure feature names is a list
+    feature_names = list(factors.keys())  # Convert dict_keys to list
+    st.write(f"Feature names count: {len(feature_names)}")
+
     if shap_values.shape[1] == len(feature_names):
+        st.subheader("SHAP Force Plot - AI Explainability")
+        st_shap(shap.force_plot(explainer.expected_value, shap_values[0, :], user_input[0, :]))
+
+        st.subheader("SHAP Summary Plot")
         fig, ax = plt.subplots()
         shap.summary_plot(shap_values, feature_names=feature_names, show=False)
         st.pyplot(fig)
